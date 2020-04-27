@@ -389,7 +389,7 @@ void Cchip8Dlg::OnOpenRomFile()
 void Cchip8Dlg::OnSize(UINT nType, int cx, int cy)
 {
     CDialog::OnSize(nType, cx, cy);
-    RECT client_rect, invalid_rect;
+    RECT client_rect;
     GetClientRect(&client_rect     );
     GetClientRect(&m_tChip8VMRender);
     int clientw = m_tChip8VMRender.right, clienth = m_tChip8VMRender.bottom;
