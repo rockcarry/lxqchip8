@@ -1,0 +1,12 @@
+!.gitignore
+
+*.ncb
+*.suo
+*.vcproj.*
+
+Release/
+Debug/
+/release
+/debug
+
+
