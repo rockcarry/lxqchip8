@@ -122,6 +122,9 @@ void Cchip8Dlg::OpenRomFile(char *file)
     } else {
         _tcsncpy(romfile, file, sizeof(romfile));
     }
+    int pos = CString(romfile).ReverseFind('\\');
+    if (pos != -1) pos++;
+    SetWindowText(CString("lxqchip8 - ") + CString(romfile).Mid(pos));
 
     if (m_pChip8VMCtxt) {
         chip8vm_stop(m_pChip8VMCtxt);
