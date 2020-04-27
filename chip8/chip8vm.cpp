@@ -130,6 +130,14 @@ static void chip8vm_scroll_screen(CHIP8 *chip8, int scrollx, int scrolly)
             memset(chip8->schip8_vram + i * stride, 0, stride);
         }
     }
+    if (scrolly < 0) {
+        for (i=0; i<sh-scrolly; i++) {
+            memcpy(chip8->schip8_vram + i * stride, chip8->schip8_vram + (i - scrolly) * stride, stride);
+        }
+        for (; i<sh; i++) {
+            memset(chip8->schip8_vram + i * stride, 0, stride);
+        }
+    }
     if (scrollx > 0) {
         uint8_t *p = chip8->schip8_vram + stride * sh - 1;
         for (i=0; i<sh; i++) {
@@ -169,7 +177,10 @@ void chip8vm_run(void *vm, int vsync)
         case 0x0FC: chip8vm_scroll_screen(chip8, -4, 0); chip8->flags |= FLAG_RENDER; break;
         case 0x0FB: chip8vm_scroll_screen(chip8,  4, 0); chip8->flags |= FLAG_RENDER; break;
         default:
-            if ((opcode1 & 0xF0) == 0xC0) {
+            if ((opcode1 & 0xF0) == 0xB0) {
+                chip8vm_scroll_screen(chip8, 0,-N);
+                chip8->flags |= FLAG_RENDER;
+            } else if ((opcode1 & 0xF0) == 0xC0) {
                 chip8vm_scroll_screen(chip8, 0, N);
                 chip8->flags |= FLAG_RENDER;
             } else {
