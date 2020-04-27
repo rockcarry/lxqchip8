@@ -49,7 +49,7 @@ static uint8_t g_chip8_fontset[80] = {
 typedef struct {
     uint8_t  mem[4096];
     uint8_t  v[16];
-    uint16_t stack[256];
+    uint16_t stack[128];
     uint8_t  delay_timer;
     uint8_t  sound_timer;
     uint16_t pc;
@@ -61,14 +61,15 @@ typedef struct {
     uint8_t  flags;
 } CHIP8;
 
-#define VX  (chip8->v[(opcode0 >> 0) & 0xF])
-#define VY  (chip8->v[(opcode1 >> 4) & 0xF])
-#define V0  (chip8->v[0x0])
-#define VF  (chip8->v[0xF])
-#define X   (opcode0 & 0xF)
-#define N   (opcode1 & 0xF)
-#define NN  (opcode1)
-#define NNN (((opcode0 & 0xF) << 8) | opcode1)
+#define VX   (chip8->v[(opcode0 >> 0) & 0xF])
+#define VY   (chip8->v[(opcode1 >> 4) & 0xF])
+#define V0   (chip8->v[0x0])
+#define VF   (chip8->v[0xF])
+#define X    (opcode0 & 0xF)
+#define N    (opcode1 & 0xF)
+#define NN   (opcode1)
+#define NNN  (((opcode0 & 0xF) << 8) | opcode1)
+#define VRAM (chip8->mem + 0xF00)
 #define UNKNOWN_OPCODE(op0, op1) do { log_printf("unknown opcode: %02X%02X\n", op0, op1); } while (0)
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
@@ -108,7 +109,7 @@ void chip8vm_run(void *vm, int vsync)
             chip8->pc = chip8->stack[--chip8->sp];
             goto _done;
         } else if (opcode1 == 0x0E0) {
-            memset(chip8->mem + 0xF00, 0, 256);
+            memset(VRAM, 0, 256);
             chip8->flags |= FLAG_RENDER;
         } else {
             UNKNOWN_OPCODE(opcode0, opcode1);
@@ -148,7 +149,7 @@ void chip8vm_run(void *vm, int vsync)
     case 0xD:
         for (i=0,VF=0; i<N; i++) {
             uint16_t line = chip8->mem[chip8->i + i] << (8 - (VX & 0x7));
-            uint8_t *byte = (chip8->mem + 0xF00) + 8 * ((VY + i) & 0x1F) + (VX & 0x3F) / 8;
+            uint8_t *byte = VRAM + 8 * ((VY + i) & 0x1F) + (VX & 0x3F) / 8;
             if (VX & 0x7) {
                 if (!VF) VF = !!(((byte[0] << 8) | (byte[1] << 0)) & line);
                 byte[0] ^= (line >> 8) & 0xFF;
@@ -222,10 +223,8 @@ void chip8vm_key(void *vm, int key)
 #define GRID_SIZE 5
 static void pixel(uint32_t *buf, int x, int y, int c)
 {
-    int gx = x * 5;
-    int gy = y * 5;
+    int gx = x * 5, gy = y * 5, i, j;
     uint32_t *p = buf + (y * GRID_SIZE + 1) * (64 * GRID_SIZE) + (x * GRID_SIZE + 1);
-    int i, j;
     for (i=0; i<GRID_SIZE-1; i++) {
         for (j=0; j<GRID_SIZE-1; j++) {
             *p++ = c ? 0x55FF55 : 0;
@@ -237,9 +236,9 @@ static void pixel(uint32_t *buf, int x, int y, int c)
 
 void chip8vm_render(void *vm, void *buf)
 {
-    int     x = 0, y = 0, i, j;
-    CHIP8  *chip8 = (CHIP8*)vm;
-    uint8_t *vram = chip8->mem + 0xF00;
+    int x = 0, y = 0, i, j;
+    CHIP8   *chip8 = (CHIP8*)vm;
+    uint8_t *vram  = VRAM;
     if (!chip8 || !(chip8->flags & FLAG_RENDER)) return;
     chip8->flags &= ~FLAG_RENDER;
     for (i=0; i<64*32/8; i++) {

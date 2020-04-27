@@ -84,6 +84,7 @@ void Cchip8Dlg::DoRunChip8VM()
         InvalidateRect(NULL, 0);
         sleep_tick = next_tick - GetTickCount();
         if (sleep_tick > 0) Sleep(sleep_tick );
+        else if (sleep_tick < -1000) next_tick = 0;
     }
 }
 
