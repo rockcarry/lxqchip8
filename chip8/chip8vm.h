@@ -7,7 +7,7 @@ extern "C" {
 
 void* chip8vm_init  (char *rom);
 void  chip8vm_exit  (void *vm );
-void  chip8vm_run   (void *vm );
+void  chip8vm_run   (void *vm, int vsync);
 void  chip8vm_stop  (void *vm );
 void  chip8vm_key   (void *vm, int key);
 void  chip8vm_render(void *vm, void *buf);

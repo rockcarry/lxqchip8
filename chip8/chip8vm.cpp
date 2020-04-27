@@ -96,7 +96,7 @@ void chip8vm_exit(void *vm)
     if (vm) free(vm);
 }
 
-void chip8vm_run(void *vm)
+void chip8vm_run(void *vm, int vsync)
 {
     CHIP8   *chip8  = (CHIP8*)vm;
     uint8_t  opcode0= chip8->mem[(chip8->pc + 0) & 0xFFF];
@@ -201,8 +201,10 @@ void chip8vm_run(void *vm)
     }
     chip8->pc += 2;
 _done:
-    if (chip8->delay_timer > 0) chip8->delay_timer--;
-    if (chip8->sound_timer > 0) chip8->sound_timer--;
+    if (vsync)  {
+        if (chip8->delay_timer > 0) chip8->delay_timer--;
+        if (chip8->sound_timer > 0) chip8->sound_timer--;
+    }
 }
 
 void chip8vm_stop(void *vm)

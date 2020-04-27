@@ -79,9 +79,7 @@ void Cchip8Dlg::DoRunChip8VM()
     while (!m_bExitChip8VM) {
         if (!next_tick) next_tick = GetTickCount();
         next_tick += 1000 / 60;
-        for (i=0; i<2; i++) {
-            chip8vm_run(m_pChip8VMCtxt);
-        }
+        for (i=0; i<8; i++) chip8vm_run(m_pChip8VMCtxt, !i);
         chip8vm_render(m_pChip8VMCtxt, m_pMemBitmap);
         InvalidateRect(NULL, 0);
         sleep_tick = next_tick - GetTickCount();
