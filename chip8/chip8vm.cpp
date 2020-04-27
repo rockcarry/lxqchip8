@@ -18,7 +18,7 @@ typedef   signed char   int8_t;
 #define CHIP8_TYPE_ORIGINAL 0
 #define CHIP8_TYPE_CHIP48   1
 #define CHIP8_TYPE_SCHIP8   2
-#define CONFIG_CHIP8_TYPE   CHIP8_TYPE_ORIGINAL
+#define CONFIG_CHIP8_TYPE   CHIP8_TYPE_CHIP48
 
 int log_printf(char *format, ...)
 {
