@@ -43,9 +43,11 @@ private:
     BOOL    m_bExitChip8VM;
     HANDLE  m_hChip8VMThread;
     WORD    m_wChip8VMKeys;
+    RECT    m_tChip8VMRender;
 
 public:
     void SetWindowClientSize(int w, int h);
     void DoRunChip8VM();
     void OpenRomFile(char *file);
+    afx_msg void OnSize(UINT nType, int cx, int cy);
 };

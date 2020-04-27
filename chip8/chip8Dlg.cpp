@@ -68,6 +68,7 @@ BEGIN_MESSAGE_MAP(Cchip8Dlg, CDialog)
     ON_WM_DESTROY()
     ON_WM_TIMER()
     ON_COMMAND(ID_OPEN_ROM_FILE, &Cchip8Dlg::OnOpenRomFile)
+    ON_WM_SIZE()
 END_MESSAGE_MAP()
 
 
@@ -245,8 +246,9 @@ void Cchip8Dlg::OnPaint()
         // Draw the icon
         dc.DrawIcon(x, y, m_hIcon);
     } else {
-        CPaintDC dc(this); CRect rect; GetClientRect(&rect);
-        StretchBlt(dc, 0, 0, rect.right, rect.bottom, m_hMemDC, 0, 0, CHIP8VM_RENDER_WIDTH, CHIP8VM_RENDER_HEIGHT, SRCCOPY);
+        CPaintDC dc(this);
+        StretchBlt(dc, m_tChip8VMRender.left, m_tChip8VMRender.top, m_tChip8VMRender.right, m_tChip8VMRender.bottom,
+            m_hMemDC, 0, 0, CHIP8VM_RENDER_WIDTH, CHIP8VM_RENDER_HEIGHT, SRCCOPY);
     }
 }
 
@@ -311,4 +313,24 @@ void Cchip8Dlg::OnTimer(UINT_PTR nIDEvent)
 void Cchip8Dlg::OnOpenRomFile()
 {
     OpenRomFile(NULL);
+}
+
+void Cchip8Dlg::OnSize(UINT nType, int cx, int cy)
+{
+    CDialog::OnSize(nType, cx, cy);
+    RECT client_rect, invalid_rect;
+    GetClientRect(&client_rect     );
+    GetClientRect(&m_tChip8VMRender);
+    int clientw = m_tChip8VMRender.right, clienth = m_tChip8VMRender.bottom;
+    if (m_tChip8VMRender.right * CHIP8VM_RENDER_HEIGHT > m_tChip8VMRender.bottom * CHIP8VM_RENDER_WIDTH) {
+        m_tChip8VMRender.right  = m_tChip8VMRender.bottom * CHIP8VM_RENDER_WIDTH / CHIP8VM_RENDER_HEIGHT;
+        m_tChip8VMRender.left   = (clientw - m_tChip8VMRender.right ) / 2;
+    } else {
+        m_tChip8VMRender.bottom = m_tChip8VMRender.right * CHIP8VM_RENDER_HEIGHT / CHIP8VM_RENDER_WIDTH;
+        m_tChip8VMRender.top    = (clienth - m_tChip8VMRender.bottom) / 2;
+    }
+    invalid_rect = client_rect; invalid_rect.bottom = m_tChip8VMRender.top   ; InvalidateRect(&invalid_rect, 1);
+    invalid_rect = client_rect; invalid_rect.top    = m_tChip8VMRender.bottom; InvalidateRect(&invalid_rect, 1);
+    invalid_rect = client_rect; invalid_rect.right  = m_tChip8VMRender.left  ; InvalidateRect(&invalid_rect, 1);
+    invalid_rect = client_rect; invalid_rect.left   = m_tChip8VMRender.right ; InvalidateRect(&invalid_rect, 1);
 }
