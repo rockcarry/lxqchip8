@@ -243,7 +243,7 @@ BOOL Cchip8Dlg::OnInitDialog()
         m_pWaveHdr[i].dwBufferLength = WAVE_BUF_LEN;
         waveOutPrepareHeader(m_hWaveOut, &m_pWaveHdr[i], sizeof(WAVEHDR));
         for (int j=0; j<WAVE_BUF_LEN/2; j++) {
-            ((SHORT*)m_pWaveHdr[i].lpData)[j] = j % 8 < 4 ? 20000 : -20000;
+            ((SHORT*)m_pWaveHdr[i].lpData)[j] = j % 10 < 5 ? 20000 : -20000;
         }
     }
 

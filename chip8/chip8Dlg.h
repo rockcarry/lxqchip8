@@ -45,7 +45,7 @@ private:
     RECT     m_tChip8VMRender;
     int      m_bChip8LRes;
 
-    #define WAVE_SAMPRATE 8000
+    #define WAVE_SAMPRATE 12000
     #define WAVE_BUF_NUM  3
     #define WAVE_BUF_LEN (WAVE_SAMPRATE / 60 * 2)
     HWAVEOUT m_hWaveOut;
