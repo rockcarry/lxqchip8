@@ -150,14 +150,9 @@ void chip8vm_run(void *vm, int vsync)
         for (i=0,VF=0; i<N; i++) {
             uint16_t line = chip8->mem[chip8->i + i] << (8 - (VX & 0x7));
             uint8_t *byte = VRAM + 8 * ((VY + i) & 0x1F) + (VX & 0x3F) / 8;
-            if (VX & 0x7) {
-                if (!VF) VF = !!(((byte[0] << 8) | (byte[1] << 0)) & line);
-                byte[0] ^= (line >> 8) & 0xFF;
-                byte[1] ^= (line >> 0) & 0xFF;
-            } else {
-                if (!VF) VF = !!(byte[0] & line);
-                byte[0] ^= (line >> 8) & 0xFF;
-            }
+            if (!VF) VF = !!(((byte[0] << 8) | (byte[1] << 0)) & line);
+            byte[0] ^= (line >> 8) & 0xFF;
+            byte[1] ^= (line >> 0) & 0xFF;
             chip8->flags |= FLAG_RENDER;
         }
         break;
