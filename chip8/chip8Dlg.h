@@ -21,7 +21,8 @@ protected:
 
 // Implementation
 protected:
-    HICON m_hIcon;
+    HICON  m_hIcon;
+    HACCEL m_hAcc;
 
     // Generated message map functions
     virtual BOOL OnInitDialog();
@@ -30,6 +31,8 @@ protected:
     afx_msg HCURSOR OnQueryDragIcon();
     afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
     afx_msg void OnDestroy();
+    afx_msg void OnTimer(UINT_PTR nIDEvent);
+    afx_msg void OnOpenRomFile();
     DECLARE_MESSAGE_MAP()
 
 private:
@@ -44,4 +47,5 @@ private:
 public:
     void SetWindowClientSize(int w, int h);
     void DoRunChip8VM();
+    void OpenRomFile(char *file);
 };

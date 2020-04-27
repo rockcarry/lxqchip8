@@ -10,6 +10,7 @@
 #define new DEBUG_NEW
 #endif
 
+#define TIMER_OPEN_FILE  1
 
 // CAboutDlg dialog used for App About
 
@@ -45,6 +46,10 @@ END_MESSAGE_MAP()
 // Cchip8Dlg dialog
 Cchip8Dlg::Cchip8Dlg(CWnd* pParent /*=NULL*/)
     : CDialog(Cchip8Dlg::IDD, pParent)
+    , m_pChip8VMCtxt(NULL)
+    , m_wChip8VMKeys(0)
+    , m_bExitChip8VM(FALSE)
+    , m_hChip8VMThread(NULL)
 {
     m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -61,6 +66,8 @@ BEGIN_MESSAGE_MAP(Cchip8Dlg, CDialog)
     ON_WM_CTLCOLOR()
     //}}AFX_MSG_MAP
     ON_WM_DESTROY()
+    ON_WM_TIMER()
+    ON_COMMAND(ID_OPEN_ROM_FILE, &Cchip8Dlg::OnOpenRomFile)
 END_MESSAGE_MAP()
 
 
@@ -102,6 +109,36 @@ void Cchip8Dlg::SetWindowClientSize(int w, int h)
     MoveWindow(x, y, w, h, TRUE);
 }
 
+void Cchip8Dlg::OpenRomFile(char *file)
+{
+    char romfile[MAX_PATH] = "";
+    if (!file) {
+        CFileDialog dlg(TRUE);
+        if (dlg.DoModal() == IDOK) {
+            _tcscpy(romfile, dlg.GetPathName());
+        } else {
+            OnOK();
+        }
+    } else {
+        _tcscpy(romfile, file);
+    }
+
+    if (m_pChip8VMCtxt) {
+        chip8vm_stop(m_pChip8VMCtxt);
+        m_bExitChip8VM = TRUE;
+        if (m_hChip8VMThread) {
+            WaitForSingleObject(m_hChip8VMThread, -1);
+            CloseHandle(m_hChip8VMThread);
+        }
+        chip8vm_exit(m_pChip8VMCtxt);
+    }
+
+    m_pChip8VMCtxt   = chip8vm_init(romfile);
+    m_wChip8VMKeys   = 0;
+    m_bExitChip8VM   = FALSE;
+    m_hChip8VMThread = CreateThread(NULL, 0, Chip8VMThreadProc, this, 0, NULL);
+}
+
 // Cchip8Dlg message handlers
 
 BOOL Cchip8Dlg::OnInitDialog()
@@ -129,6 +166,9 @@ BOOL Cchip8Dlg::OnInitDialog()
     SetIcon(m_hIcon, TRUE);         // Set big icon
     SetIcon(m_hIcon, FALSE);        // Set small icon
 
+    // load accelerators
+    m_hAcc = LoadAccelerators(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDR_ACCELERATOR1)); 
+
     // TODO: Add extra initialization here
     SetWindowClientSize(64 * 5, 32 * 5);
 
@@ -145,19 +185,11 @@ BOOL Cchip8Dlg::OnInitDialog()
     SelectObject(m_hMemDC, m_hMemBitmap);
     ReleaseDC(pDC);
 
-    char romfile[MAX_PATH] = "";
-    if (__argc <= 1) {
-        CFileDialog dlg(TRUE);
-        if (dlg.DoModal() == IDOK) {
-            _tcscpy(romfile, dlg.GetPathName());
-        } else {
-            OnOK();
-        }
+    if (__argc >= 2) {
+        OpenRomFile(__argv[1]);
+    } else {
+        SetTimer(TIMER_OPEN_FILE, 100, NULL);
     }
-    m_pChip8VMCtxt   = chip8vm_init(romfile);
-    m_wChip8VMKeys   = 0;
-    m_bExitChip8VM   = FALSE;
-    m_hChip8VMThread = CreateThread(NULL, 0, Chip8VMThreadProc, this, 0, NULL);
     return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
@@ -170,9 +202,10 @@ void Cchip8Dlg::OnDestroy()
     m_bExitChip8VM = TRUE;
     if (m_hChip8VMThread) {
         WaitForSingleObject(m_hChip8VMThread, -1);
+        CloseHandle(m_hChip8VMThread);
     }
-
     chip8vm_exit(m_pChip8VMCtxt);
+
     DeleteDC(m_hMemDC);
     DeleteObject(m_hMemBitmap);
 }
@@ -233,6 +266,7 @@ HBRUSH Cchip8Dlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 
 BOOL Cchip8Dlg::PreTranslateMessage(MSG *pMsg)
 {
+    if (TranslateAccelerator(GetSafeHwnd(), m_hAcc, pMsg)) return TRUE;
     if (pMsg->message == WM_KEYDOWN) {
         if (pMsg->wParam >= '0' && pMsg->wParam <= '9') {
             m_wChip8VMKeys |= (1 << (pMsg->wParam - '0'));
@@ -257,4 +291,21 @@ BOOL Cchip8Dlg::PreTranslateMessage(MSG *pMsg)
         chip8vm_key(m_pChip8VMCtxt, m_wChip8VMKeys);
     }
     return CDialog::PreTranslateMessage(pMsg);
+}
+
+void Cchip8Dlg::OnTimer(UINT_PTR nIDEvent)
+{
+    // TODO: Add your message handler code here and/or call default
+    switch (nIDEvent) {
+    case TIMER_OPEN_FILE:
+        KillTimer(nIDEvent);
+        OpenRomFile(NULL);
+        break;
+    }
+    CDialog::OnTimer(nIDEvent);
+}
+
+void Cchip8Dlg::OnOpenRomFile()
+{
+    OpenRomFile(NULL);
 }
