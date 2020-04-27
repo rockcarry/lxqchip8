@@ -170,13 +170,8 @@ void chip8vm_run(void *vm, int vsync)
         case 0x07: VX = chip8->delay_timer; break;
         case 0x0A:
             while (!(chip8->flags & FLAG_EXIT)) {
-                for (i=0; i<16; i++) {
-                    if (chip8->key & (1 << i)) {
-                        VX = i;
-                        chip8->pc += 2;
-                        goto _done;
-                    }
-                }
+                for (i=0; i<16 && (chip8->key & (1<<i))==0; i++);
+                if (i != 16) { VX = i; break; }
                 usleep(10*1000);
             }
             break;
