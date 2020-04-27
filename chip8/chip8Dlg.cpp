@@ -115,12 +115,12 @@ void Cchip8Dlg::OpenRomFile(char *file)
     if (!file) {
         CFileDialog dlg(TRUE);
         if (dlg.DoModal() == IDOK) {
-            _tcscpy(romfile, dlg.GetPathName());
+            _tcsncpy(romfile, dlg.GetPathName(), sizeof(romfile));
         } else {
             OnOK();
         }
     } else {
-        _tcscpy(romfile, file);
+        _tcsncpy(romfile, file, sizeof(romfile));
     }
 
     if (m_pChip8VMCtxt) {
