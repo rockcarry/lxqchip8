@@ -15,6 +15,11 @@ typedef   signed char   int8_t;
 #include <stdint.h>
 #endif
 
+#define CHIP8_TYPE_ORIGINAL 0
+#define CHIP8_TYPE_CHIP48   1
+#define CHIP8_TYPE_SCHIP8   2
+#define CONFIG_CHIP8_TYPE   CHIP8_TYPE_ORIGINAL
+
 int log_printf(char *format, ...)
 {
     char buf[1024];
@@ -27,7 +32,7 @@ int log_printf(char *format, ...)
     return retv;
 }
 
-static uint8_t g_chip8_fontset[80] = {
+const static uint8_t g_chip8_fontset[] = {
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
     0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -43,7 +48,21 @@ static uint8_t g_chip8_fontset[80] = {
     0xF0, 0x80, 0x80, 0x80, 0xF0, // C
     0xE0, 0x90, 0x90, 0x90, 0xE0, // D
     0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-    0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+    0xF0, 0x80, 0xF0, 0x80, 0x80, // F
+
+#if (CONFIG_CHIP8_TYPE == CHIP8_TYPE_SCHIP8)
+    // high-res sprites
+    0x3C, 0x7E, 0xE7, 0xC3, 0xC3, 0xC3, 0xC3, 0xE7, 0x7E, 0x3C, // "0"
+    0x18, 0x38, 0x58, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3C, // "1"
+    0x3E, 0x7F, 0xC3, 0x06, 0x0C, 0x18, 0x30, 0x60, 0xFF, 0xFF, // "2"
+    0x3C, 0x7E, 0xC3, 0x03, 0x0E, 0x0E, 0x03, 0xC3, 0x7E, 0x3C, // "3"
+    0x06, 0x0E, 0x1E, 0x36, 0x66, 0xC6, 0xFF, 0xFF, 0x06, 0x06, // "4"
+    0xFF, 0xFF, 0xC0, 0xC0, 0xFC, 0xFE, 0x03, 0xC3, 0x7E, 0x3C, // "5"
+    0x3E, 0x7C, 0xC0, 0xC0, 0xFC, 0xFE, 0xC3, 0xC3, 0x7E, 0x3C, // "6"
+    0xFF, 0xFF, 0x03, 0x06, 0x0C, 0x18, 0x30, 0x60, 0x60, 0x60, // "7"
+    0x3C, 0x7E, 0xC3, 0xC3, 0x7E, 0x7E, 0xC3, 0xC3, 0x7E, 0x3C, // "8"
+    0x3C, 0x7E, 0xC3, 0xC3, 0x7F, 0x3F, 0x03, 0x03, 0x3E, 0x7C, // "9"
+#endif
 };
 
 typedef struct {
@@ -58,7 +77,13 @@ typedef struct {
     uint16_t key;
     #define FLAG_EXIT   (1 << 0)
     #define FLAG_RENDER (1 << 1)
+    #define FLAG_HIRES  (1 << 2)
     uint8_t  flags;
+#if (CONFIG_CHIP8_TYPE == CHIP8_TYPE_SCHIP8)
+    int8_t   scrollx;
+    int8_t   scrolly;
+    uint8_t  schip8_flag_regs[8];
+#endif
 } CHIP8;
 
 #define VX   (chip8->v[(opcode0 >> 0) & 0xF])
@@ -105,14 +130,26 @@ void chip8vm_run(void *vm, int vsync)
     int      i;
     switch (opcode0 >> 4) {
     case 0x0:
-        if (NNN == 0x0EE) {
-            chip8->pc = chip8->stack[--chip8->sp];
-            goto _done;
-        } else if (opcode1 == 0x0E0) {
-            memset(VRAM, 0, 256);
-            chip8->flags |= FLAG_RENDER;
-        } else {
-            UNKNOWN_OPCODE(opcode0, opcode1);
+        switch (NNN) {
+        case 0x0EE: chip8->pc = chip8->stack[--chip8->sp]; goto _done;
+        case 0x0E0: memset(VRAM, 0, 256); chip8->flags |= FLAG_RENDER; break;
+#if (CONFIG_CHIP8_TYPE == CHIP8_TYPE_SCHIP8)
+        case 0x0FF: chip8->flags |= FLAG_HIRES|FLAG_RENDER; break;
+        case 0x0FE: chip8->flags &=~FLAG_HIRES|FLAG_RENDER; break;
+        case 0x0FD: chip8->flags |= FLAG_EXIT; break;
+        case 0x0FC: chip8->scrollx =-4; break;
+        case 0x0FB: chip8->scrollx = 4; break;
+#endif
+        default:
+#if (CONFIG_CHIP8_TYPE == CHIP8_TYPE_SCHIP8)
+            if ((opcode0 & 0x0FF0) == 0x00C0) {
+                chip8->scrolly = N;
+            } else
+#endif
+            {
+                UNKNOWN_OPCODE(opcode0, opcode1);
+            }
+            break;
         }
         break;
     case 0x1: chip8->pc = NNN; goto _done;
@@ -130,9 +167,14 @@ void chip8vm_run(void *vm, int vsync)
         case 0x3: VX ^= VY; break;
         case 0x4: VF = VX > 255 - VY; VX += VY; break;
         case 0x5: VF = VX > VY; VX = VX - VY; break;
-        case 0x6: VF = (VX >> 0) & 1; VX >>= 1; break;
         case 0x7: VF = VY > VX; VX = VY - VX; break;
+#if (CONFIG_CHIP8_TYPE == CHIP8_TYPE_ORIGINAL)
+        case 0x6: VF = (VX >> 0) & 1; VY = VX >> 1; break;
+        case 0xE: VF = (VX >> 7) & 1; VY = VX << 1; break;
+#else
+        case 0x6: VF = (VX >> 0) & 1; VX >>= 1; break;
         case 0xE: VF = (VX >> 7) & 1; VX <<= 1; break;
+#endif
         default : UNKNOWN_OPCODE(opcode0, opcode1); break;
         }
         break;
@@ -155,6 +197,12 @@ void chip8vm_run(void *vm, int vsync)
             byte[1] ^= (line >> 0) & 0xFF;
             chip8->flags |= FLAG_RENDER;
         }
+#if (CONFIG_CHIP8_TYPE == CHIP8_TYPE_SCHIP8)
+        if (N == 0) {
+            // draw 16x16 sprite
+            // todo..
+        }
+#endif
         break;
     case 0xE:
         if (NN == 0x9E) {
@@ -184,8 +232,16 @@ void chip8vm_run(void *vm, int vsync)
             chip8->mem[chip8->i + 1] = (VX % 100 ) / 10;
             chip8->mem[chip8->i + 2] = (VX % 10  ) / 1;
             break;
+#if (CONFIG_CHIP8_TYPE == CHIP8_TYPE_SCHIP8)
+        case 0x55: for (i=0; i<=X; i++) chip8->mem[chip8->i + i] = chip8->v[i]; break;
+        case 0x65: for (i=0; i<=X; i++) chip8->v[i] = chip8->mem[chip8->i + i]; break;
+        case 0x30: chip8->i = 0xA0 + VX * 10;
+        case 0x75: if (X <= 7) memcpy(chip8->schip8_flag_regs, chip8->v, X + 1); break;
+        case 0x85: if (X <= 7) memcpy(chip8->v, chip8->schip8_flag_regs, X + 1); break;
+#else
         case 0x55: for (i=0; i<=X; i++) chip8->mem[chip8->i + i] = chip8->v[i]; chip8->i += X + 1; break;
         case 0x65: for (i=0; i<=X; i++) chip8->v[i] = chip8->mem[chip8->i + i]; chip8->i += X + 1; break;
+#endif
         default  : UNKNOWN_OPCODE(opcode0, opcode1); break;
         }
         break;
