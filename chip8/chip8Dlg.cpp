@@ -173,12 +173,12 @@ BOOL Cchip8Dlg::OnInitDialog()
     m_hAcc = LoadAccelerators(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDR_ACCELERATOR1)); 
 
     // TODO: Add extra initialization here
-    SetWindowClientSize(64 * 5, 32 * 5);
+    SetWindowClientSize(CHIP8VM_RENDER_WIDTH, CHIP8VM_RENDER_HEIGHT);
 
     BITMAPINFO bmpinfo = {0};
     bmpinfo.bmiHeader.biSize        =  sizeof(BITMAPINFOHEADER);
-    bmpinfo.bmiHeader.biWidth       =  64 * 5;
-    bmpinfo.bmiHeader.biHeight      = -32 * 5;
+    bmpinfo.bmiHeader.biWidth       =  CHIP8VM_RENDER_WIDTH;
+    bmpinfo.bmiHeader.biHeight      = -CHIP8VM_RENDER_HEIGHT;
     bmpinfo.bmiHeader.biPlanes      =  1;
     bmpinfo.bmiHeader.biBitCount    =  32;
     bmpinfo.bmiHeader.biCompression =  BI_RGB;
@@ -246,7 +246,7 @@ void Cchip8Dlg::OnPaint()
         dc.DrawIcon(x, y, m_hIcon);
     } else {
         CPaintDC dc(this); CRect rect; GetClientRect(&rect);
-        StretchBlt(dc, 0, 0, rect.right, rect.bottom, m_hMemDC, 0, 0, 64 * 5, 32 * 5, SRCCOPY);
+        StretchBlt(dc, 0, 0, rect.right, rect.bottom, m_hMemDC, 0, 0, CHIP8VM_RENDER_WIDTH, CHIP8VM_RENDER_HEIGHT, SRCCOPY);
     }
 }
 

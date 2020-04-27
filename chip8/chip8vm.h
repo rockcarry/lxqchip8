@@ -5,6 +5,9 @@
 extern "C" {
 #endif
 
+#define CHIP8VM_RENDER_WIDTH   (64 * 5)
+#define CHIP8VM_RENDER_HEIGHT  (32 * 5)
+
 void* chip8vm_init  (char *rom);
 void  chip8vm_exit  (void *vm );
 void  chip8vm_run   (void *vm, int vsync);
