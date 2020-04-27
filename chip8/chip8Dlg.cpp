@@ -98,6 +98,7 @@ void Cchip8Dlg::DoRunChip8VM()
         for (i=0; i<8; i++) chip8vm_run(m_pChip8VMCtxt, !i);
 
         // render video
+        chip8vm_getparam(m_pChip8VMCtxt, CHIP8VM_PARAM_CHIP8_LRES, &m_bChip8LRes);
         if (chip8vm_render(m_pChip8VMCtxt, m_pMemBitmap)) {
             InvalidateRect(NULL, 0);
         }
@@ -210,8 +211,8 @@ BOOL Cchip8Dlg::OnInitDialog()
 
     BITMAPINFO bmpinfo = {0};
     bmpinfo.bmiHeader.biSize        =  sizeof(BITMAPINFOHEADER);
-    bmpinfo.bmiHeader.biWidth       =  CHIP8VM_RENDER_WIDTH;
-    bmpinfo.bmiHeader.biHeight      = -CHIP8VM_RENDER_HEIGHT;
+    bmpinfo.bmiHeader.biWidth       =  CHIP8VM_RENDER_WIDTH * CHIP8VM_RENDER_DOTSIZE;
+    bmpinfo.bmiHeader.biHeight      = -CHIP8VM_RENDER_HEIGHT* CHIP8VM_RENDER_DOTSIZE;
     bmpinfo.bmiHeader.biPlanes      =  1;
     bmpinfo.bmiHeader.biBitCount    =  32;
     bmpinfo.bmiHeader.biCompression =  BI_RGB;
@@ -319,7 +320,7 @@ void Cchip8Dlg::OnPaint()
     } else {
         CPaintDC dc(this);
         StretchBlt(dc, m_tChip8VMRender.left, m_tChip8VMRender.top, m_tChip8VMRender.right, m_tChip8VMRender.bottom,
-            m_hMemDC, 0, 0, CHIP8VM_RENDER_WIDTH, CHIP8VM_RENDER_HEIGHT, SRCCOPY);
+            m_hMemDC, 0, 0, CHIP8VM_RENDER_WIDTH >> m_bChip8LRes, CHIP8VM_RENDER_HEIGHT >> m_bChip8LRes, SRCCOPY);
     }
 }
 

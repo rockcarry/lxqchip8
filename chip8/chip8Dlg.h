@@ -43,6 +43,7 @@ private:
     HANDLE   m_hChip8VMThread;
     WORD     m_wChip8VMKeys;
     RECT     m_tChip8VMRender;
+    int      m_bChip8LRes;
 
     #define WAVE_SAMPRATE 8000
     #define WAVE_BUF_NUM  3

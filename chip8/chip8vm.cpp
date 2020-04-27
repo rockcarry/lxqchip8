@@ -18,7 +18,7 @@ typedef   signed char   int8_t;
 #define CHIP8_TYPE_ORIGINAL 0
 #define CHIP8_TYPE_CHIP48   1
 #define CHIP8_TYPE_SCHIP8   2
-#define CONFIG_CHIP8_TYPE   CHIP8_TYPE_CHIP48
+#define CONFIG_CHIP8_TYPE   CHIP8_TYPE_SCHIP8
 
 int log_printf(char *format, ...)
 {
@@ -50,7 +50,6 @@ const static uint8_t g_chip8_fontset[] = {
     0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
     0xF0, 0x80, 0xF0, 0x80, 0x80, // F
 
-#if (CONFIG_CHIP8_TYPE == CHIP8_TYPE_SCHIP8)
     // high-res sprites
     0x3C, 0x7E, 0xE7, 0xC3, 0xC3, 0xC3, 0xC3, 0xE7, 0x7E, 0x3C, // "0"
     0x18, 0x38, 0x58, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3C, // "1"
@@ -62,7 +61,6 @@ const static uint8_t g_chip8_fontset[] = {
     0xFF, 0xFF, 0x03, 0x06, 0x0C, 0x18, 0x30, 0x60, 0x60, 0x60, // "7"
     0x3C, 0x7E, 0xC3, 0xC3, 0x7E, 0x7E, 0xC3, 0xC3, 0x7E, 0x3C, // "8"
     0x3C, 0x7E, 0xC3, 0xC3, 0x7F, 0x3F, 0x03, 0x03, 0x3E, 0x7C, // "9"
-#endif
 };
 
 typedef struct {
@@ -79,11 +77,8 @@ typedef struct {
     #define FLAG_RENDER (1 << 1)
     #define FLAG_HIRES  (1 << 2)
     uint8_t  flags;
-#if (CONFIG_CHIP8_TYPE == CHIP8_TYPE_SCHIP8)
-    int8_t   scrollx;
-    int8_t   scrolly;
     uint8_t  schip8_flag_regs[8];
-#endif
+    uint8_t  schip8_vram[1024];
 } CHIP8;
 
 #define VX   (chip8->v[(opcode0 >> 0) & 0xF])
@@ -94,7 +89,7 @@ typedef struct {
 #define N    (opcode1 & 0xF)
 #define NN   (opcode1)
 #define NNN  (((opcode0 & 0xF) << 8) | opcode1)
-#define VRAM (chip8->mem + 0xF00)
+#define VRAM (chip8->schip8_vram)
 #define UNKNOWN_OPCODE(op0, op1) do { log_printf("unknown opcode: %02X%02X\n", op0, op1); } while (0)
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
@@ -122,31 +117,62 @@ void chip8vm_exit(void *vm)
     if (vm) free(vm);
 }
 
+static void chip8vm_scroll_screen(CHIP8 *chip8, int scrollx, int scrolly)
+{
+    int sw = (chip8->flags & FLAG_HIRES) ? CHIP8VM_SCHIP8_WIDTH : CHIP8VM_CHIP8_WIDTH;
+    int sh = (chip8->flags & FLAG_HIRES) ? CHIP8VM_SCHIP8_HEIGHT: CHIP8VM_CHIP8_HEIGHT;
+    int stride = sw / 8, i, j;
+    if (scrolly > 0) {
+        for (i=sh-1; i>=scrolly; i--) {
+            memcpy(chip8->schip8_vram + i * stride, chip8->schip8_vram + (i - scrolly) * stride, stride);
+        }
+        for (; i>=0; i++) {
+            memset(chip8->schip8_vram + i * stride, 0, stride);
+        }
+    }
+    if (scrollx > 0) {
+        uint8_t *p = chip8->schip8_vram + stride * sh - 1;
+        for (i=0; i<sh; i++) {
+            for (j=0; j<stride-1; j++) {
+                p[0] = (p[0] >> 4) | (p[-1] << 4);
+                *p--;
+            }
+            *p-- >>= 4;
+        }
+    }
+    if (scrollx < 0) {
+        uint8_t *p = chip8->schip8_vram;
+        for (i=0; i<sh; i++) {
+            for (j=0; j<stride-1; j++) {
+                p[0] = (p[0] << 4) | (p[1] >> 4);
+                *p++;
+            }
+            *p++ <<= 4;
+        }
+    }
+}
+
 void chip8vm_run(void *vm, int vsync)
 {
     CHIP8   *chip8  = (CHIP8*)vm;
     uint8_t  opcode0= chip8->mem[(chip8->pc + 0) & 0xFFF];
     uint8_t  opcode1= chip8->mem[(chip8->pc + 1) & 0xFFF];
-    int      i;
+    int      i, n;
     switch (opcode0 >> 4) {
     case 0x0:
         switch (NNN) {
         case 0x0EE: chip8->pc = chip8->stack[--chip8->sp]; goto _done;
-        case 0x0E0: memset(VRAM, 0, 256); chip8->flags |= FLAG_RENDER; break;
-#if (CONFIG_CHIP8_TYPE == CHIP8_TYPE_SCHIP8)
+        case 0x0E0: memset(VRAM, 0, sizeof(VRAM)); chip8->flags |= FLAG_RENDER; break;
         case 0x0FF: chip8->flags |= FLAG_HIRES|FLAG_RENDER; break;
         case 0x0FE: chip8->flags &=~FLAG_HIRES|FLAG_RENDER; break;
         case 0x0FD: chip8->flags |= FLAG_EXIT; break;
-        case 0x0FC: chip8->scrollx =-4; break;
-        case 0x0FB: chip8->scrollx = 4; break;
-#endif
+        case 0x0FC: chip8vm_scroll_screen(chip8, -4, 0); chip8->flags |= FLAG_RENDER; break;
+        case 0x0FB: chip8vm_scroll_screen(chip8,  4, 0); chip8->flags |= FLAG_RENDER; break;
         default:
-#if (CONFIG_CHIP8_TYPE == CHIP8_TYPE_SCHIP8)
             if ((opcode0 & 0x0FF0) == 0x00C0) {
-                chip8->scrolly = N;
-            } else
-#endif
-            {
+                chip8vm_scroll_screen(chip8, 0, N);
+                chip8->flags |= FLAG_RENDER;
+            } else {
                 UNKNOWN_OPCODE(opcode0, opcode1);
             }
             break;
@@ -189,20 +215,26 @@ void chip8vm_run(void *vm, int vsync)
     case 0xB: chip8->pc = NNN + V0; goto _done;
     case 0xC: VX = rand() & NN; break;
     case 0xD:
-        for (i=0,VF=0; i<N; i++) {
-            uint16_t line = chip8->mem[chip8->i + i] << (8 - (VX & 0x7));
-            uint8_t *byte = VRAM + 8 * ((VY + i) & 0x1F) + (VX & 0x3F) / 8;
-            if (!VF) VF = !!(((byte[0] << 8) | (byte[1] << 0)) & line);
-            byte[0] ^= (line >> 8) & 0xFF;
-            byte[1] ^= (line >> 0) & 0xFF;
-            chip8->flags |= FLAG_RENDER;
+        n = N == 0 ? 16 : N;
+        if (N == 0 && chip8->flags & FLAG_HIRES) { // draw 16xN sprite
+            for (i=0; i<n; i++) {
+                uint32_t line = ((chip8->mem[chip8->i + i * 2 + 0] << 16) | (chip8->mem[chip8->i + i * 2 + 1] << 8)) >> (VX & 0x7);
+                uint8_t *byte = VRAM + 16 * ((VY + i) & 0x3F) + (VX & 0x7F) / 8;
+                if (!VF) VF = !!(((byte[0] << 16) | (byte[1] << 8) | (byte[2] << 0)) & line);
+                byte[0] ^= (line >> 16) & 0xFF;
+                byte[1] ^= (line >> 8 ) & 0xFF;
+                byte[2] ^= (line >> 0 ) & 0xFF;
+            }
+        } else { // draw 8xN sprite
+            for (i=0,VF=0; i<n; i++) {
+                uint32_t line = (chip8->mem[chip8->i + i] << 8) >> (VX & 0x7);
+                uint8_t *byte = (chip8->flags & FLAG_HIRES) ? VRAM + 16 * ((VY + i) & 0x3F) + (VX & 0x7F) / 8 : VRAM + 8 * ((VY + i) & 0x1F) + (VX & 0x3F) / 8;
+                if (!VF) VF = !!(((byte[0] << 8) | (byte[1] << 0)) & line);
+                byte[0] ^= (line >> 8) & 0xFF;
+                byte[1] ^= (line >> 0) & 0xFF;
+            }
         }
-#if (CONFIG_CHIP8_TYPE == CHIP8_TYPE_SCHIP8)
-        if (N == 0) {
-            // draw 16x16 sprite
-            // todo..
-        }
-#endif
+        chip8->flags |= FLAG_RENDER;
         break;
     case 0xE:
         if (NN == 0x9E) {
@@ -227,6 +259,7 @@ void chip8vm_run(void *vm, int vsync)
         case 0x18: chip8->sound_timer = VX; break;
         case 0x1E: VF = chip8->i + VX > 0xFFF; chip8->i += VX; break;
         case 0x29: chip8->i = VX * 5; break;
+        case 0x30: chip8->i = 0xA0 + VX * 10; break;
         case 0x33:
             chip8->mem[chip8->i + 0] = (VX % 1000) / 100;
             chip8->mem[chip8->i + 1] = (VX % 100 ) / 10;
@@ -235,13 +268,12 @@ void chip8vm_run(void *vm, int vsync)
 #if (CONFIG_CHIP8_TYPE == CHIP8_TYPE_SCHIP8)
         case 0x55: for (i=0; i<=X; i++) chip8->mem[chip8->i + i] = chip8->v[i]; break;
         case 0x65: for (i=0; i<=X; i++) chip8->v[i] = chip8->mem[chip8->i + i]; break;
-        case 0x30: chip8->i = 0xA0 + VX * 10;
-        case 0x75: if (X <= 7) memcpy(chip8->schip8_flag_regs, chip8->v, X + 1); break;
-        case 0x85: if (X <= 7) memcpy(chip8->v, chip8->schip8_flag_regs, X + 1); break;
 #else
         case 0x55: for (i=0; i<=X; i++) chip8->mem[chip8->i + i] = chip8->v[i]; chip8->i += X + 1; break;
         case 0x65: for (i=0; i<=X; i++) chip8->v[i] = chip8->mem[chip8->i + i]; chip8->i += X + 1; break;
 #endif
+        case 0x75: if (X <= 7) memcpy(chip8->schip8_flag_regs, chip8->v, X + 1); break;
+        case 0x85: if (X <= 7) memcpy(chip8->v, chip8->schip8_flag_regs, X + 1); break;
         default  : UNKNOWN_OPCODE(opcode0, opcode1); break;
         }
         break;
@@ -266,33 +298,40 @@ void chip8vm_key(void *vm, int key)
     if (chip8) chip8->key = key;
 }
 
-#define GRID_SIZE 5
 static void pixel(uint32_t *buf, int x, int y, int c)
 {
     int gx = x * 5, gy = y * 5, i, j;
-    uint32_t *p = buf + (y * GRID_SIZE + 1) * (64 * GRID_SIZE) + (x * GRID_SIZE + 1);
-    for (i=0; i<GRID_SIZE-1; i++) {
-        for (j=0; j<GRID_SIZE-1; j++) {
+    uint32_t *p = buf + (y * CHIP8VM_RENDER_DOTSIZE + 1) * (CHIP8VM_RENDER_WIDTH * CHIP8VM_RENDER_DOTSIZE) + (x * CHIP8VM_RENDER_DOTSIZE + 1);
+    for (i=0; i<CHIP8VM_RENDER_DOTSIZE-1; i++) {
+        for (j=0; j<CHIP8VM_RENDER_DOTSIZE-1; j++) {
             *p++ = c ? 0x55FF55 : 0;
         }
-        p -= GRID_SIZE - 1;
-        p += 64 * GRID_SIZE;
+        p -= CHIP8VM_RENDER_DOTSIZE - 1;
+        p += CHIP8VM_RENDER_WIDTH * CHIP8VM_RENDER_DOTSIZE;
     }
 }
 
 int chip8vm_render(void *vm, void *buf)
 {
-    int x = 0, y = 0, i, j;
+    int x = 0, y = 0, w, h, i, j;
     CHIP8   *chip8 = (CHIP8*)vm;
     uint8_t *vram  = VRAM;
+
     if (!chip8 || !(chip8->flags & FLAG_RENDER)) return 0;
     chip8->flags &= ~FLAG_RENDER;
-    for (i=0; i<64*32/8; i++) {
+
+    w = (chip8->flags & FLAG_HIRES) ? CHIP8VM_SCHIP8_WIDTH  : CHIP8VM_CHIP8_WIDTH ;
+    h = (chip8->flags & FLAG_HIRES) ? CHIP8VM_SCHIP8_HEIGHT : CHIP8VM_CHIP8_HEIGHT;
+    for (i=0; i<w*h/8; i++) {
         for (j=7; j>=0; j--) {
             pixel((uint32_t*)buf, x++, y, *vram & (1 <<j));
         }
         vram++;
-        if ((i & 0x7) == 0x7) { x = 0; y++; }
+        if (chip8->flags & FLAG_HIRES) {
+            if ((i & 0xF) == 0xF) { x = 0; y++; }
+        } else {
+            if ((i & 0x7) == 0x7) { x = 0; y++; }
+        }
     }
     return 1;
 }
@@ -305,6 +344,9 @@ void chip8vm_getparam(void *vm, int id, void *param)
     switch (id) {
     case CHIP8VM_PARAM_SOUND_TIMER:
         *(uint32_t*)param = chip8->sound_timer;
+        break;
+    case CHIP8VM_PARAM_CHIP8_LRES:
+        *(uint32_t*)param = !(chip8->flags & FLAG_HIRES);
         break;
     }
 }
