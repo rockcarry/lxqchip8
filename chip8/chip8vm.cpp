@@ -224,12 +224,12 @@ static void pixel(uint32_t *buf, int x, int y, int c)
     }
 }
 
-void chip8vm_render(void *vm, void *buf)
+int chip8vm_render(void *vm, void *buf)
 {
     int x = 0, y = 0, i, j;
     CHIP8   *chip8 = (CHIP8*)vm;
     uint8_t *vram  = VRAM;
-    if (!chip8 || !(chip8->flags & FLAG_RENDER)) return;
+    if (!chip8 || !(chip8->flags & FLAG_RENDER)) return 0;
     chip8->flags &= ~FLAG_RENDER;
     for (i=0; i<64*32/8; i++) {
         for (j=7; j>=0; j--) {
@@ -238,8 +238,19 @@ void chip8vm_render(void *vm, void *buf)
         vram++;
         if ((i & 0x7) == 0x7) { x = 0; y++; }
     }
+    return 1;
 }
 
-
+void chip8vm_getparam(void *vm, int id, void *param)
+{
+    CHIP8   *chip8 = (CHIP8*)vm;
+    uint8_t *vram  = VRAM;
+    if (!chip8) return;
+    switch (id) {
+    case CHIP8VM_PARAM_SOUND_TIMER:
+        *(uint32_t*)param = chip8->sound_timer;
+        break;
+    }
+}
 
 

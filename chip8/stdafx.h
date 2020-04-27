@@ -59,3 +59,6 @@
 
 // disable warnings
 #pragma warning(disable:4996)
+
+// for wavein/waveout
+#include <mmsystem.h>

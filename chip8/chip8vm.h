@@ -13,7 +13,12 @@ void  chip8vm_exit  (void *vm );
 void  chip8vm_run   (void *vm, int vsync);
 void  chip8vm_stop  (void *vm );
 void  chip8vm_key   (void *vm, int key);
-void  chip8vm_render(void *vm, void *buf);
+int   chip8vm_render(void *vm, void *buf);
+
+enum {
+    CHIP8VM_PARAM_SOUND_TIMER = 0,
+};
+void  chip8vm_getparam(void *vm, int id, void *param);
 
 #ifdef __cplusplus
 }

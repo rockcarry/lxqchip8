@@ -79,6 +79,12 @@ static DWORD WINAPI Chip8VMThreadProc(LPVOID pParam)
     return 0;
 }
 
+static void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2)
+{
+    Cchip8Dlg *dlg = (Cchip8Dlg*)dwInstance;
+    dlg->DoWaveOutProc(hwo, uMsg, dwInstance, dwParam1, dwParam2);
+}
+
 void Cchip8Dlg::DoRunChip8VM()
 {
     DWORD next_tick = 0;
@@ -87,12 +93,38 @@ void Cchip8Dlg::DoRunChip8VM()
     while (!m_bExitChip8VM) {
         if (!next_tick) next_tick = GetTickCount();
         next_tick += 1000 / 60;
+
+        // run chip8vm
         for (i=0; i<8; i++) chip8vm_run(m_pChip8VMCtxt, !i);
-        chip8vm_render(m_pChip8VMCtxt, m_pMemBitmap);
-        InvalidateRect(NULL, 0);
+
+        // render video
+        if (chip8vm_render(m_pChip8VMCtxt, m_pMemBitmap)) {
+            InvalidateRect(NULL, 0);
+        }
+
+        // render audio
+        DWORD soundtimer = 0;
+        chip8vm_getparam(m_pChip8VMCtxt, CHIP8VM_PARAM_SOUND_TIMER, &soundtimer);
+        if (soundtimer) {
+            WaitForSingleObject(m_hWaveSem, -1);
+            waveOutWrite(m_hWaveOut, &m_pWaveHdr[m_nWaveTail], sizeof(WAVEHDR));
+            if (++m_nWaveTail == WAVE_BUF_NUM) m_nWaveTail = 0;
+        }
+
+        // chip8vm speed control
         sleep_tick = next_tick - GetTickCount();
         if (sleep_tick > 0) Sleep(sleep_tick );
         else if (sleep_tick < -1000) next_tick = 0;
+    }
+}
+
+void Cchip8Dlg::DoWaveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2)
+{
+    switch (uMsg) {
+    case WOM_DONE:
+        ReleaseSemaphore(m_hWaveSem, 1, NULL);
+        if (++m_nWaveHead == WAVE_BUF_NUM) m_nWaveHead = 0;
+        break;
     }
 }
 
@@ -189,6 +221,34 @@ BOOL Cchip8Dlg::OnInitDialog()
     SelectObject(m_hMemDC, m_hMemBitmap);
     ReleaseDC(pDC);
 
+    // init for audio
+    WAVEFORMATEX   wfx  = {0};
+    wfx.cbSize          = sizeof(wfx);
+    wfx.wFormatTag      = WAVE_FORMAT_PCM;
+    wfx.wBitsPerSample  = 16;    // 16bit
+    wfx.nSamplesPerSec  = WAVE_SAMPRATE;
+    wfx.nChannels       = 1;     // stereo
+    wfx.nBlockAlign     = wfx.nChannels * wfx.wBitsPerSample / 8;
+    wfx.nAvgBytesPerSec = wfx.nBlockAlign * wfx.nSamplesPerSec;
+    m_nWaveHead= m_nWaveTail = 0;
+    m_hWaveSem = CreateSemaphore(NULL, WAVE_BUF_NUM, WAVE_BUF_NUM, NULL);
+    waveOutOpen(&m_hWaveOut, WAVE_MAPPER, &wfx, (DWORD_PTR)waveOutProc, (DWORD_PTR)this, CALLBACK_FUNCTION);
+
+    // init wavebuf
+    m_pWaveHdr    = (WAVEHDR*)calloc(WAVE_BUF_NUM, sizeof(WAVEHDR) + WAVE_BUF_LEN);
+    BYTE *pwavbuf = (BYTE*)(m_pWaveHdr + WAVE_BUF_NUM);
+    for (int i=0; i<WAVE_BUF_NUM; i++) {
+        m_pWaveHdr[i].lpData         = (LPSTR)(pwavbuf + i * WAVE_BUF_LEN);
+        m_pWaveHdr[i].dwBufferLength = WAVE_BUF_LEN;
+        waveOutPrepareHeader(m_hWaveOut, &m_pWaveHdr[i], sizeof(WAVEHDR));
+        for (int j=0; j<WAVE_BUF_LEN/2; j++) {
+            ((SHORT*)m_pWaveHdr[i].lpData)[j] = j % 8 < 4 ? 20000 : -20000;
+        }
+    }
+
+    // start waveout
+    waveOutRestart(m_hWaveOut);
+
     if (__argc >= 2) {
         OpenRomFile(__argv[1]);
     } else {
@@ -209,6 +269,17 @@ void Cchip8Dlg::OnDestroy()
         CloseHandle(m_hChip8VMThread);
     }
     chip8vm_exit(m_pChip8VMCtxt);
+
+    // unprepare wave header & close waveout device
+    if (m_hWaveOut) {
+        waveOutReset(m_hWaveOut);
+        for (int i=0; i<WAVE_BUF_NUM; i++) {
+            waveOutUnprepareHeader(m_hWaveOut, &m_pWaveHdr[i], sizeof(WAVEHDR));
+        }
+        waveOutClose(m_hWaveOut);
+    }
+    if (m_hWaveSem) CloseHandle(m_hWaveSem);
+    if (m_pWaveHdr) free(m_pWaveHdr);
 
     DeleteDC(m_hMemDC);
     DeleteObject(m_hMemBitmap);
