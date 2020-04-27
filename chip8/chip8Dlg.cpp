@@ -400,8 +400,5 @@ void Cchip8Dlg::OnSize(UINT nType, int cx, int cy)
         m_tChip8VMRender.bottom = m_tChip8VMRender.right * CHIP8VM_RENDER_HEIGHT / CHIP8VM_RENDER_WIDTH;
         m_tChip8VMRender.top    = (clienth - m_tChip8VMRender.bottom) / 2;
     }
-    invalid_rect = client_rect; invalid_rect.bottom = m_tChip8VMRender.top   ; InvalidateRect(&invalid_rect, 1);
-    invalid_rect = client_rect; invalid_rect.top    = m_tChip8VMRender.bottom; InvalidateRect(&invalid_rect, 1);
-    invalid_rect = client_rect; invalid_rect.right  = m_tChip8VMRender.left  ; InvalidateRect(&invalid_rect, 1);
-    invalid_rect = client_rect; invalid_rect.left   = m_tChip8VMRender.right ; InvalidateRect(&invalid_rect, 1);
+    InvalidateRect(NULL, TRUE);
 }
