@@ -345,25 +345,13 @@ BOOL Cchip8Dlg::PreTranslateMessage(MSG *pMsg)
 {
     if (TranslateAccelerator(GetSafeHwnd(), m_hAcc, pMsg)) return TRUE;
     if (pMsg->message == WM_KEYDOWN) {
-        if (pMsg->wParam >= '0' && pMsg->wParam <= '9') {
-            m_wChip8VMKeys |= (1 << (pMsg->wParam - '0'));
-        } else if (pMsg->wParam >= VK_NUMPAD0 && pMsg->wParam <= VK_NUMPAD9) {
+        if (pMsg->wParam >= VK_NUMPAD0 && pMsg->wParam <= VK_DIVIDE) {
             m_wChip8VMKeys |= (1 << (pMsg->wParam - VK_NUMPAD0));
-        } else if (pMsg->wParam >= 'a' && pMsg->wParam <= 'f') {
-            m_wChip8VMKeys |= (1 << (0xa + pMsg->wParam - 'a'));
-        } else if (pMsg->wParam >= 'A' && pMsg->wParam <= 'F') {
-            m_wChip8VMKeys |= (1 << (0xa + pMsg->wParam - 'A'));
         }
         chip8vm_key(m_pChip8VMCtxt, m_wChip8VMKeys);
     } else if (pMsg->message == WM_KEYUP) {
-        if (pMsg->wParam >= '0' && pMsg->wParam <= '9') {
-            m_wChip8VMKeys &=~(1 << (pMsg->wParam - '0'));
-        } else if (pMsg->wParam >= VK_NUMPAD0 && pMsg->wParam <= VK_NUMPAD9) {
+        if (pMsg->wParam >= VK_NUMPAD0 && pMsg->wParam <= VK_DIVIDE) {
             m_wChip8VMKeys &=~(1 << (pMsg->wParam - VK_NUMPAD0));
-        } else if (pMsg->wParam >= 'a' && pMsg->wParam <= 'f') {
-            m_wChip8VMKeys &=~(1 << (0xa + pMsg->wParam - 'a'));
-        } else if (pMsg->wParam >= 'A' && pMsg->wParam <= 'F') {
-            m_wChip8VMKeys &=~(1 << (0xa + pMsg->wParam - 'A'));
         }
         chip8vm_key(m_pChip8VMCtxt, m_wChip8VMKeys);
     }
@@ -403,3 +391,6 @@ void Cchip8Dlg::OnSize(UINT nType, int cx, int cy)
     }
     InvalidateRect(NULL, TRUE);
 }
+
+void Cchip8Dlg::OnCancel() {}
+void Cchip8Dlg::OnOK()     {}
