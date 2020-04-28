@@ -69,6 +69,7 @@ BEGIN_MESSAGE_MAP(Cchip8Dlg, CDialog)
     ON_WM_TIMER()
     ON_COMMAND(ID_OPEN_ROM_FILE, &Cchip8Dlg::OnOpenRomFile)
     ON_WM_SIZE()
+    ON_WM_CLOSE()
 END_MESSAGE_MAP()
 
 
@@ -394,3 +395,8 @@ void Cchip8Dlg::OnSize(UINT nType, int cx, int cy)
 
 void Cchip8Dlg::OnCancel() {}
 void Cchip8Dlg::OnOK()     {}
+void Cchip8Dlg::OnClose()
+{
+    CDialog::OnClose();
+    EndDialog(IDCANCEL);
+}
