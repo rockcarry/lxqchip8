@@ -39,8 +39,9 @@ FX55  STORE VX
 FX65  LOAD  VX
  */
 
-#ifdef WIN32
+#ifdef _MSC_VER
 #pragma warning(disable:4996)
+#define strcasecmp stricmp
 #endif
 
 typedef unsigned char  uint8_t;
@@ -73,7 +74,7 @@ static void str2upper(char *str)
     }
 }
 
-static int isdigit(char *str)
+static int strisdigit(char *str)
 {
     while (*str) {
         if (*str < '0' || *str > '9') return 0;
@@ -134,7 +135,7 @@ static int parse_imm(char *str)
     if (!str) return -1;
     if (strstr(str, "0x") == str || strstr(str, "0X") == str) {
         sscanf(str, "%x", &imm);
-    } else if (isdigit(str)) {
+    } else if (strisdigit(str)) {
         sscanf(str, "%d", &imm);
     }
     return imm;
@@ -144,7 +145,7 @@ static int str_find(STR_ITEM *strlst, int strnum, char *strname)
 {
     int  i;
     for (i=1; i<strnum; i++) {
-        if (stricmp(strlst[i].name, strname) == 0) return i;
+        if (strcasecmp(strlst[i].name, strname) == 0) return i;
     }
     return -1;
 }
@@ -276,7 +277,7 @@ int main(int argc, char *argv[])
                     }
                     break;
                 case OPCODE_FOURCC('M', 'O', 'V'):
-                    if (stricmp(opnd1, "I") == 0) {
+                    if (strcasecmp(opnd1, "I") == 0) {
                         if ((tmp2 = parse_imm(opnd2)) >= 0) {
                             asm_add(asm_tab, &asm_num, curline, curaddr, 0xA000 | (tmp2 & 0xFFF), 0);
                         } else {
@@ -302,7 +303,7 @@ int main(int argc, char *argv[])
                     }
                     break;
                 case OPCODE_FOURCC('A', 'D', 'D'):
-                    if (stricmp(opnd1, "I") == 0) {
+                    if (strcasecmp(opnd1, "I") == 0) {
                         if ((tmp2 = parse_imm(opnd2)) >= 0) {
                             asm_add(asm_tab, &asm_num, curline, curaddr, 0xF01E | ((tmp2 & 0xF) << 8), 0);
                         } else {
@@ -443,3 +444,4 @@ done:
     if (fpout) fclose(fpout);
     return 0;
 }
+
