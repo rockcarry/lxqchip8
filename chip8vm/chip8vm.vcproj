@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="chip8"
+	Name="chip8vm"
 	ProjectGUID="{5D0A20FE-A6B6-45D7-A560-D90CCA7EE248}"
 	RootNamespace="chip8"
 	Keyword="MFCProj"

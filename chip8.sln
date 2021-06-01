@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chip8", "chip8\chip8.vcproj", "{5D0A20FE-A6B6-45D7-A560-D90CCA7EE248}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chip8vm", "chip8vm\chip8vm.vcproj", "{5D0A20FE-A6B6-45D7-A560-D90CCA7EE248}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
