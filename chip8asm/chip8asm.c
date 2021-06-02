@@ -66,14 +66,6 @@ typedef struct {
     uint16_t addr;
 } STR_ITEM;
 
-static void str2upper(char *str)
-{
-    while (*str) {
-        if (*str >= 'a' && *str <= 'z') *str -= 32;
-        str++;
-    }
-}
-
 static int strisdigit(char *str)
 {
     if (*str == '+' || *str == '-') str++;
@@ -108,15 +100,13 @@ static int parse_opcode(char *str)
         "SUB", "SHR"  , "SHL" , "RAND", "DRAW", "SKD", "SKU", "GTM", "GKEY", "STM", "BEEP",
         "BCD", "STORE", "LOAD", "JV0" ,  NULL
     };
-    char tmp[10];
     int  code, i;
-    strncpy(tmp, str, sizeof(tmp)); str2upper(tmp);
     for (i=0; OPCODE_TAB[i]; i++) {
-        if (strcmp(tmp, OPCODE_TAB[i]) == 0) break;
+        if (strcasecmp(str, OPCODE_TAB[i]) == 0) break;
     }
     if (!OPCODE_TAB[i]) {
-        if (strstr(tmp, "0X") != tmp) return -1;
-        sscanf(tmp, "%x", &code);
+        if (strstr(str, "0x") != str && strstr(str, "0X") != str) return -1;
+        sscanf(str, "%x", &code);
         code &= 0xFFFF;
     } else code = OPCODE_FOURCC(OPCODE_TAB[i][0], OPCODE_TAB[i][1], OPCODE_TAB[i][2]);
     return code;
@@ -125,8 +115,10 @@ static int parse_opcode(char *str)
 static int parse_reg(char *str)
 {
     if (!str || (str[0] != 'V' && str[0] != 'v') || strlen(str) != 2) return -1;
-    if (str[1] < '0' || str[1] > 'F') return -1;
-    return str[1] - '0';
+    if ((str[1] >= 'A' && str[1] <= 'Z') || (str[1] >= 'a' && str[1] <= 'z') || (str[1] >= '0' && str[1] <= '9')) {
+        int n; sscanf(str + 1, "%x", &n);
+        return n;
+    } else return -1;
 }
 
 static int parse_imm(char *str)
@@ -156,31 +148,28 @@ static int str_find(STR_ITEM *strlst, int strnum, char *strname)
 
 static int str_add(STR_ITEM *strlst, int *strnum, char *strname, uint16_t addr, uint16_t line)
 {
-    if (*strnum < MAX_STR_NUM) {
-        char tmp[32];
-        int  len;
-        strncpy(tmp, strname, sizeof(tmp));
-        len = (int)strlen(tmp);
-        if (len > 0 && tmp[len - 1] == ':') tmp[len - 1] = '\0';
+    char tmp[32];
+    int  len;
 
-        strncpy(strlst[*strnum].name, tmp, sizeof(strlst[*strnum].name));
-        strlst[*strnum].addr = addr;
-        strlst[*strnum].line = line;
-        return (*strnum)++;
-    }
-    return -1;
+    if (*strnum >= MAX_STR_NUM) return -1;
+    strncpy(tmp, strname, sizeof(tmp));
+    len = (int)strlen(tmp);
+    if (len > 0 && tmp[len - 1] == ':') tmp[len - 1] = '\0';
+
+    strncpy(strlst[*strnum].name, tmp, sizeof(strlst[*strnum].name));
+    strlst[*strnum].addr = addr;
+    strlst[*strnum].line = line;
+    return (*strnum)++;
 }
 
 static int asm_add(ASM_ITEM *asmlst, int *asmnum, uint16_t line, uint16_t addr, uint16_t opcode, uint16_t stridx)
 {
-    if (*asmnum < MAX_ASM_NUM) {
-        asmlst[*asmnum].line   = line;
-        asmlst[*asmnum].addr   = addr;
-        asmlst[*asmnum].opcode = opcode;
-        asmlst[*asmnum].stridx = stridx;
-        return (*asmnum)++;
-    }
-    return -1;
+    if (*asmnum >= MAX_ASM_NUM) return -1;
+    asmlst[*asmnum].line   = line;
+    asmlst[*asmnum].addr   = addr;
+    asmlst[*asmnum].opcode = opcode;
+    asmlst[*asmnum].stridx = stridx;
+    return (*asmnum)++;
 }
 
 int main(int argc, char *argv[])
@@ -214,9 +203,9 @@ int main(int argc, char *argv[])
         char  buffer[256], token[5][32] = {0}, *opcode = token[1], *opnd1 = token[2], *opnd2 = token[3], *opnd3 = token[4];
         int   code, tmp1, tmp2, tmp3, idx;
         if (fgets(buffer, sizeof(buffer), fpin) != NULL) {
-            for (i=0; buffer[i]; i++) buffer[i] = buffer[i] == ',' ? ' ' : buffer[i];
-            sscanf(buffer, "%32s %32s %32s %32s %32s", token[0], token[1], token[2], token[3], token[4]);
-            if (parse_label(token[0])) {
+            for (i=0; buffer[i]; i++) buffer[i] = buffer[i] == ',' ? ' ' : buffer[i]; // replace ',' to ' '
+            sscanf(buffer, "%32s %32s %32s %32s %32s", token[0], token[1], token[2], token[3], token[4]); // read token
+            if (parse_label(token[0])) { // is label
                 idx = str_find(str_tab, str_num, token[0]);
                 if (idx != -1) {
                     if (str_tab[idx].line == 0) {
@@ -234,7 +223,7 @@ int main(int argc, char *argv[])
                 } else {
                     str_add(str_tab, &str_num, token[0], curaddr, curline);
                 }
-            } else if (parse_addr(token[0]) >= 0) {
+            } else if (parse_addr(token[0]) >= 0) { // is address
                 curaddr = parse_addr(token[0]);
             } else {
                 opcode  = token[0]; opnd1 = token[1]; opnd2 = token[2]; opnd3 = token[3];
