@@ -76,6 +76,7 @@ static void str2upper(char *str)
 
 static int strisdigit(char *str)
 {
+    if (*str == '+' || *str == '-') str++;
     while (*str) {
         if (*str < '0' || *str > '9') return 0;
         str++;
@@ -134,9 +135,9 @@ static int parse_imm(char *str)
     int imm = -1;
     if (!str) return -1;
     if (strstr(str, "0x") == str || strstr(str, "0X") == str) {
-        sscanf(str, "%x", &imm);
+        sscanf(str, "%x", &imm); imm &= 0xFFF;
     } else if (strisdigit(str)) {
-        sscanf(str, "%d", &imm);
+        sscanf(str, "%d", &imm); imm &= 0xFFF;
     }
     return imm;
 }
