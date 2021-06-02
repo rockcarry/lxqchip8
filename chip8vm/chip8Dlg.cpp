@@ -96,7 +96,7 @@ void Cchip8Dlg::DoRunChip8VM()
         next_tick += 1000 / 60;
 
         // run chip8vm
-        for (i=0; i<8; i++) chip8vm_run(m_pChip8VMCtxt, !i);
+        for (i=0; i<CHIP8VM_RUNNING_SPEED; i++) chip8vm_run(m_pChip8VMCtxt, !i);
 
         // render video
         chip8vm_getparam(m_pChip8VMCtxt, CHIP8VM_PARAM_CHIP8_LRES, &m_bChip8LRes);
