@@ -90,14 +90,13 @@ static char* parse_label(char *str)
     if (!str) return NULL;
     len = (int)strlen(str);
     if (len < 2 || str[len - 1] != ':') return NULL;
-    str[len - 1] = '\0';
     return (strstr(str, "0x") != str && strstr(str, "0X") != str) ? str : NULL;
 }
 
 static int parse_addr(char *str)
 {
     int addr = 0;
-    if (!str || (strstr(str, "0x") != str && strstr(str, "0X") != str)) return -1;
+    if (!str || (strstr(str, "0x") != str && strstr(str, "0X") != str) || str[strlen(str) - 1] != ':') return -1;
     sscanf(str, "%x", &addr);
     return addr;
 }
@@ -144,9 +143,13 @@ static int parse_imm(char *str)
 
 static int str_find(STR_ITEM *strlst, int strnum, char *strname)
 {
-    int  i;
+    char tmp[32];
+    int  len, i;
+    strncpy(tmp, strname, sizeof(tmp));
+    len = (int)strlen(tmp);
+    if (len > 0 && tmp[len - 1] == ':') tmp[len - 1] = '\0';
     for (i=1; i<strnum; i++) {
-        if (strcasecmp(strlst[i].name, strname) == 0) return i;
+        if (strcasecmp(strlst[i].name, tmp) == 0) return i;
     }
     return -1;
 }
@@ -154,7 +157,13 @@ static int str_find(STR_ITEM *strlst, int strnum, char *strname)
 static int str_add(STR_ITEM *strlst, int *strnum, char *strname, uint16_t addr, uint16_t line)
 {
     if (*strnum < MAX_STR_NUM) {
-        strncpy(strlst[*strnum].name, strname, sizeof(strlst[*strnum].name));
+        char tmp[32];
+        int  len;
+        strncpy(tmp, strname, sizeof(tmp));
+        len = (int)strlen(tmp);
+        if (len > 0 && tmp[len - 1] == ':') tmp[len - 1] = '\0';
+
+        strncpy(strlst[*strnum].name, tmp, sizeof(strlst[*strnum].name));
         strlst[*strnum].addr = addr;
         strlst[*strnum].line = line;
         return (*strnum)++;
@@ -205,6 +214,7 @@ int main(int argc, char *argv[])
         char  buffer[256], token[5][32] = {0}, *opcode = token[1], *opnd1 = token[2], *opnd2 = token[3], *opnd3 = token[4];
         int   code, tmp1, tmp2, tmp3, idx;
         if (fgets(buffer, sizeof(buffer), fpin) != NULL) {
+            for (i=0; buffer[i]; i++) buffer[i] = buffer[i] == ',' ? ' ' : buffer[i];
             sscanf(buffer, "%32s %32s %32s %32s %32s", token[0], token[1], token[2], token[3], token[4]);
             if (parse_label(token[0])) {
                 idx = str_find(str_tab, str_num, token[0]);
