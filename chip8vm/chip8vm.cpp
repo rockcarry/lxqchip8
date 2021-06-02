@@ -312,13 +312,13 @@ void chip8vm_key(void *vm, int key)
 static void pixel(uint32_t *buf, int x, int y, int c)
 {
     int gx = x * 5, gy = y * 5, i, j;
-    uint32_t *p = buf + (y * CHIP8VM_RENDER_DOTSIZE + 1) * (CHIP8VM_RENDER_WIDTH * CHIP8VM_RENDER_DOTSIZE) + (x * CHIP8VM_RENDER_DOTSIZE + 1);
-    for (i=0; i<CHIP8VM_RENDER_DOTSIZE-1; i++) {
-        for (j=0; j<CHIP8VM_RENDER_DOTSIZE-1; j++) {
-            *p++ = c ? 0x55FF55 : 0;
+    uint32_t *p = buf + (y * CHIP8VM_RENDER_DOTSIZE1) * CHIP8VM_RENDER_WIDTH + (x * CHIP8VM_RENDER_DOTSIZE1);
+    for (i=0; i<CHIP8VM_RENDER_DOTSIZE2; i++) {
+        for (j=0; j<CHIP8VM_RENDER_DOTSIZE2; j++) {
+            *p++ = c ? CHIP8VM_RENDER_DOTCOLOR : 1;
         }
-        p -= CHIP8VM_RENDER_DOTSIZE - 1;
-        p += CHIP8VM_RENDER_WIDTH * CHIP8VM_RENDER_DOTSIZE;
+        p -= CHIP8VM_RENDER_DOTSIZE2;
+        p += CHIP8VM_RENDER_WIDTH;
     }
 }
 

@@ -212,8 +212,8 @@ BOOL Cchip8Dlg::OnInitDialog()
 
     BITMAPINFO bmpinfo = {0};
     bmpinfo.bmiHeader.biSize        =  sizeof(BITMAPINFOHEADER);
-    bmpinfo.bmiHeader.biWidth       =  CHIP8VM_RENDER_WIDTH * CHIP8VM_RENDER_DOTSIZE;
-    bmpinfo.bmiHeader.biHeight      = -CHIP8VM_RENDER_HEIGHT* CHIP8VM_RENDER_DOTSIZE;
+    bmpinfo.bmiHeader.biWidth       =  CHIP8VM_RENDER_WIDTH ;
+    bmpinfo.bmiHeader.biHeight      = -CHIP8VM_RENDER_HEIGHT;
     bmpinfo.bmiHeader.biPlanes      =  1;
     bmpinfo.bmiHeader.biBitCount    =  32;
     bmpinfo.bmiHeader.biCompression =  BI_RGB;
