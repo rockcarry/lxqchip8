@@ -231,8 +231,8 @@ int main(int argc, char *argv[])
             code = parse_opcode(opcode);
             if (code > 0xFFFF) {
                 switch (code) {
-                case OPCODE_FOURCC('C', 'L', 'R'): asm_add(asm_tab, &asm_num, curline, curaddr, curline, 0x00E0); break;
-                case OPCODE_FOURCC('R', 'E', 'T'): asm_add(asm_tab, &asm_num, curline, curaddr, curline, 0x00EE); break;
+                case OPCODE_FOURCC('C', 'L', 'R'): asm_add(asm_tab, &asm_num, curline, curaddr, 0x00E0, 0); break;
+                case OPCODE_FOURCC('R', 'E', 'T'): asm_add(asm_tab, &asm_num, curline, curaddr, 0x00EE, 0); break;
                 case OPCODE_FOURCC('J', 'M', 'P'):
                 case OPCODE_FOURCC('C', 'A', 'L'):
                 case OPCODE_FOURCC('J', 'V', '0'):
