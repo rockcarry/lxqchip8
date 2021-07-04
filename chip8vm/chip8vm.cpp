@@ -165,7 +165,7 @@ void chip8vm_run(void *vm, int vsync)
     CHIP8   *chip8  = (CHIP8*)vm;
     uint8_t  opcode0= chip8->mem[(chip8->pc + 0) & 0xFFF];
     uint8_t  opcode1= chip8->mem[(chip8->pc + 1) & 0xFFF];
-    int      i, n;
+    int      tmp, i, n;
     switch (opcode0 >> 4) {
     case 0x0:
         switch (NNN) {
@@ -202,9 +202,9 @@ void chip8vm_run(void *vm, int vsync)
         case 0x1: VX |= VY; break;
         case 0x2: VX &= VY; break;
         case 0x3: VX ^= VY; break;
-        case 0x4: VF = VX > 255 - VY; VX += VY; break;
-        case 0x5: VF = VX > VY; VX = VX - VY; break;
-        case 0x7: VF = VY > VX; VX = VY - VX; break;
+        case 0x4: tmp = VX + VY; VX = (uint8_t)tmp; VF = tmp > 255; break;
+        case 0x5: tmp = VX - VY; VX = (uint8_t)tmp; VF = tmp > 0  ; break;
+        case 0x7: tmp = VY - VX; VX = (uint8_t)tmp; VF = tmp > 0  ; break;
 #if (CONFIG_CHIP8_TYPE == CHIP8_TYPE_ORIGINAL)
         case 0x6: VF = (VX >> 0) & 1; VY = VX >> 1; break;
         case 0xE: VF = (VX >> 7) & 1; VY = VX << 1; break;
