@@ -206,11 +206,11 @@ void chip8vm_run(void *vm, int vsync)
         case 0x5: tmp = VX - VY; VX = (uint8_t)tmp; VF = tmp > 0  ; break;
         case 0x7: tmp = VY - VX; VX = (uint8_t)tmp; VF = tmp > 0  ; break;
 #if (CONFIG_CHIP8_TYPE == CHIP8_TYPE_ORIGINAL)
-        case 0x6: VF = (VX >> 0) & 1; VY = VX >> 1; break;
-        case 0xE: VF = (VX >> 7) & 1; VY = VX << 1; break;
+        case 0x6: tmp = VY; VX = tmp >> 1; VF = (tmp >> 0) & 1; break;
+        case 0xE: tmp = VY; VX = tmp << 1; VF = (tmp >> 7) & 1; break;
 #else
-        case 0x6: VF = (VX >> 0) & 1; VX >>= 1; break;
-        case 0xE: VF = (VX >> 7) & 1; VX <<= 1; break;
+        case 0x6: tmp = VX; VX = tmp >> 1; VF = (tmp >> 0) & 1; break;
+        case 0xE: tmp = VX; VX = tmp << 1; VF = (tmp >> 7) & 1; break;
 #endif
         default : UNKNOWN_OPCODE(opcode0, opcode1); break;
         }
