@@ -98,7 +98,7 @@ static int parse_opcode(char *str)
     static const char *OPCODE_TAB[] = {
         "CLR", "RET"  , "JMP" , "CALL", "SEQ" , "SNE", "MOV", "ADD", "OR"  , "AND", "XOR" ,
         "SUB", "SHR"  , "SHL" , "RAND", "DRAW", "SKD", "SKU", "GTM", "GKEY", "STM", "BEEP",
-        "BCD", "STORE", "LOAD", "JV0" ,  NULL
+        "BCD", "STORE", "LOAD", "JV0" , "IM5" , NULL
     };
     int  code, i;
     for (i=0; OPCODE_TAB[i]; i++) {
