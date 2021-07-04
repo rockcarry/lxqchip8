@@ -211,12 +211,6 @@ int main(int argc, char *argv[])
                     if (str_tab[idx].line == 0) {
                         str_tab[idx].addr = curaddr;
                         str_tab[idx].line = curline;
-                        for (i=0; i<asm_num; i++) {
-                            if (asm_tab[i].stridx == idx) {
-                                asm_tab[i].stridx = 0;
-                                asm_tab[i].opcode|= curaddr & 0xFFF;
-                            }
-                        }
                     } else {
                         printf("%s (%d), error: label '%s' already defined in line %d !\n", asmfile, curline, token[0], str_tab[idx].line);
                     }
@@ -238,14 +232,9 @@ int main(int argc, char *argv[])
                 case OPCODE_FOURCC('J', 'V', '0'):
                     tmp1 = parse_imm(opnd1);
                     if (tmp1 < 0) { // not imm
+                        tmp1= 0;
                         idx = str_find(str_tab, str_num, opnd1);
-                        if (idx < 0) {
-                            tmp1 = 0;
-                            idx  = str_add(str_tab, &str_num, opnd1, 0, 0);
-                        } else {
-                            tmp1 = str_tab[idx].addr;
-                            idx  = 0;
-                        }
+                        if (idx < 0) idx = str_add(str_tab, &str_num, opnd1, 0, 0);
                     } else idx = 0;
                     if      (code == OPCODE_FOURCC('J', 'M', 'P')) code = 0x1000;
                     else if (code == OPCODE_FOURCC('C', 'A', 'L')) code = 0x2000;
@@ -424,14 +413,19 @@ int main(int argc, char *argv[])
     }
 
     for (i=0; i<asm_num; i++) {
+        if (asm_tab[i].stridx) {
+            if (str_tab[asm_tab[i].stridx].addr) {
+                asm_tab[i].opcode|= str_tab[asm_tab[i].stridx].addr & 0xFFF;
+                asm_tab[i].stridx = 0;
+            } else {
+                printf("%s (%d), error: unfixed string name %s !\n", asmfile, asm_tab[i].line, str_tab[asm_tab[i].stridx].name);
+            }
+        }
         if (asm_tab[i].addr + 1 < MAX_ADDRESS) {
             rom_buf[asm_tab[i].addr + 0] = (uint8_t)(asm_tab[i].opcode >> 8);
             rom_buf[asm_tab[i].addr + 1] = (uint8_t)(asm_tab[i].opcode >> 0);
         } else {
             printf("%s (%d), error: address out of range 0x%04X !\n", asmfile, asm_tab[i].line, asm_tab[i].addr);
-        }
-        if (asm_tab[i].stridx) {
-            printf("%s (%d), error: unfixed string name %s !\n", asmfile, asm_tab[i].line, str_tab[asm_tab[i].stridx].name);
         }
     }
     for (i = 0x200; i < maxaddr && i < sizeof(rom_buf); i++) {
