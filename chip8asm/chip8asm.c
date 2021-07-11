@@ -275,7 +275,7 @@ int main(int argc, char *argv[])
                                 idx = str_add(str_tab, &str_num, opnd2, 0, 0);
                                 asm_add(asm_tab, &asm_num, curline, curaddr, 0xA000, idx);
                             } else {
-                                asm_add(asm_tab, &asm_num, curline, curaddr, 0xA000 | (str_tab[idx].addr & 0xFFFF), 0);
+                                asm_add(asm_tab, &asm_num, curline, curaddr, 0xA000 | (str_tab[idx].addr & 0xFFFF), idx);
                             }
                         }
                     } else {
