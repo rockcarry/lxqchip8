@@ -19,6 +19,7 @@ typedef   signed char   int8_t;
 #define CHIP8_TYPE_CHIP48   1
 #define CHIP8_TYPE_SCHIP8   2
 #define CONFIG_CHIP8_TYPE   CHIP8_TYPE_SCHIP8
+#define CONFIG_CHIP8_VRAM   1
 
 int log_printf(char *format, ...)
 {
@@ -277,7 +278,15 @@ void chip8vm_run(void *vm, int vsync)
             chip8->mem[chip8->i + 2] = (VX % 10  ) / 1;
             break;
 #if (CONFIG_CHIP8_TYPE == CHIP8_TYPE_SCHIP8)
-        case 0x55: for (i=0; i<=X; i++) chip8->mem[chip8->i + i] = chip8->v[i]; break;
+        case 0x55:
+            for (i=0; i<=X; i++) {
+                chip8->mem[chip8->i + i] = chip8->v[i];
+                if (CONFIG_CHIP8_VRAM && chip8->i + i >= 0x0F00 && chip8->i + i <= 0x0FFF) {
+                    chip8->schip8_vram[(chip8->i + i) & 0xFF] = chip8->v[i];
+                    chip8->flags |= FLAG_RENDER;
+                }
+            }
+            break;
         case 0x65: for (i=0; i<=X; i++) chip8->v[i] = chip8->mem[chip8->i + i]; break;
 #else
         case 0x55: for (i=0; i<=X; i++) chip8->mem[chip8->i + i] = chip8->v[i]; chip8->i += X + 1; break;
