@@ -89,7 +89,7 @@ static int parse_addr(char *str)
 {
     int addr = 0;
     if (!str || (strstr(str, "0x") != str && strstr(str, "0X") != str) || str[strlen(str) - 1] != ':') return -1;
-    sscanf(str, "%x", &addr);
+    (void)sscanf(str, "%x", &addr);
     return addr;
 }
 
@@ -101,12 +101,13 @@ static int parse_opcode(char *str)
         "BCD", "STORE", "LOAD", "JV0" , "IM5" , NULL
     };
     int  code, i;
+    if (!str) return -1;
     for (i=0; OPCODE_TAB[i]; i++) {
         if (strcasecmp(str, OPCODE_TAB[i]) == 0) break;
     }
     if (!OPCODE_TAB[i]) {
         if (strstr(str, "0x") != str && strstr(str, "0X") != str) return -1;
-        sscanf(str, "%x", &code);
+        (void)sscanf(str, "%x", &code);
         code &= 0xFFFF;
     } else code = OPCODE_FOURCC(OPCODE_TAB[i][0], OPCODE_TAB[i][1], OPCODE_TAB[i][2]);
     return code;
@@ -116,7 +117,7 @@ static int parse_reg(char *str)
 {
     if (!str || (str[0] != 'V' && str[0] != 'v') || strlen(str) != 2) return -1;
     if ((str[1] >= 'A' && str[1] <= 'Z') || (str[1] >= 'a' && str[1] <= 'z') || (str[1] >= '0' && str[1] <= '9')) {
-        int n; sscanf(str + 1, "%x", &n);
+        int n; (void)sscanf(str + 1, "%x", &n);
         return n;
     } else return -1;
 }
@@ -126,9 +127,9 @@ static int parse_imm(char *str)
     int imm = -1;
     if (!str) return -1;
     if (strstr(str, "0x") == str || strstr(str, "0X") == str) {
-        sscanf(str, "%x", &imm); imm &= 0xFFF;
+        (void)sscanf(str, "%x", &imm); imm &= 0xFFF;
     } else if (strisdigit(str)) {
-        sscanf(str, "%d", &imm); imm &= 0xFFF;
+        (void)sscanf(str, "%d", &imm); imm &= 0xFFF;
     }
     return imm;
 }
@@ -137,7 +138,7 @@ static int str_find(STR_ITEM *strlst, int strnum, char *strname)
 {
     char tmp[32];
     int  len, i;
-    strncpy(tmp, strname, sizeof(tmp));
+    strncpy(tmp, strname, sizeof(tmp)); tmp[sizeof(tmp) - 1] = '\0';
     len = (int)strlen(tmp);
     if (len > 0 && tmp[len - 1] == ':') tmp[len - 1] = '\0';
     for (i=1; i<strnum; i++) {
@@ -152,7 +153,7 @@ static int str_add(STR_ITEM *strlst, int *strnum, char *strname, uint16_t addr, 
     int  len;
 
     if (*strnum >= MAX_STR_NUM) return -1;
-    strncpy(tmp, strname, sizeof(tmp));
+    strncpy(tmp, strname, sizeof(tmp)); tmp[sizeof(tmp) - 1] = '\0';
     len = (int)strlen(tmp);
     if (len > 0 && tmp[len - 1] == ':') tmp[len - 1] = '\0';
 
@@ -184,9 +185,9 @@ int main(int argc, char *argv[])
     int      asm_num = 0;
     int      str_num = 1;
     int      i;
-    ASM_ITEM asm_tab[MAX_ASM_NUM] = {0};
-    STR_ITEM str_tab[MAX_STR_NUM] = {0};
-    uint8_t  rom_buf[MAX_ADDRESS] = {0};
+    static ASM_ITEM asm_tab[MAX_ASM_NUM] = {0};
+    static STR_ITEM str_tab[MAX_STR_NUM] = {0};
+    static uint8_t  rom_buf[MAX_ADDRESS] = {0};
 
     if (argc >= 2) asmfile = argv[1];
     if (argc >= 3) binfile = argv[2];
@@ -204,7 +205,7 @@ int main(int argc, char *argv[])
         int   code, tmp1, tmp2, tmp3, idx;
         if (fgets(buffer, sizeof(buffer), fpin) != NULL) {
             for (i=0; buffer[i]; i++) buffer[i] = buffer[i] == ',' ? ' ' : buffer[i]; // replace ',' to ' '
-            sscanf(buffer, "%32s %32s %32s %32s %32s", token[0], token[1], token[2], token[3], token[4]); // read token
+            (void)sscanf(buffer, "%32s %32s %32s %32s %32s", token[0], token[1], token[2], token[3], token[4]); // read token
             if (parse_label(token[0])) { // is label
                 idx = str_find(str_tab, str_num, token[0]);
                 if (idx != -1) {
@@ -293,10 +294,10 @@ int main(int argc, char *argv[])
                     break;
                 case OPCODE_FOURCC('A', 'D', 'D'):
                     if (strcasecmp(opnd1, "I") == 0) {
-                        if ((tmp2 = parse_imm(opnd2)) >= 0) {
-                            asm_add(asm_tab, &asm_num, curline, curaddr, 0xF01E | ((tmp2 & 0xF) << 8), 0);
+                        if ((tmp2 = parse_reg(opnd2)) <  0) {
+                            printf("%s (%d), error: %s is not a reg !\n", asmfile, curline, opnd2);
                         } else {
-                            printf("%s (%d), error: %s is not a imm !\n", asmfile, curline, opnd2);
+                            asm_add(asm_tab, &asm_num, curline, curaddr, 0xF01E | ((tmp2 & 0xF) << 8), 0);
                         }
                     } else {
                         if ((tmp1 = parse_reg(opnd1)) <  0) printf("%s (%d), error: %s is not a reg !\n", asmfile, curline, opnd1);
