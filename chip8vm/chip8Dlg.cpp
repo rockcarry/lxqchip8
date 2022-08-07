@@ -70,6 +70,7 @@ BEGIN_MESSAGE_MAP(Cchip8Dlg, CDialog)
     ON_COMMAND(ID_OPEN_ROM_FILE, &Cchip8Dlg::OnOpenRomFile)
     ON_WM_SIZE()
     ON_WM_CLOSE()
+    ON_WM_LBUTTONDBLCLK()
 END_MESSAGE_MAP()
 
 
@@ -399,4 +400,10 @@ void Cchip8Dlg::OnClose()
 {
     CDialog::OnClose();
     EndDialog(IDCANCEL);
+}
+
+void Cchip8Dlg::OnLButtonDblClk(UINT nFlags, CPoint point)
+{
+    CDialog::OnLButtonDblClk(nFlags, point);
+    chip8vm_dump(m_pChip8VMCtxt);
 }

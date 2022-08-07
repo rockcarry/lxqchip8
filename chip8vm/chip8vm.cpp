@@ -356,6 +356,21 @@ int chip8vm_render(void *vm, void *buf)
     return 1;
 }
 
+void chip8vm_dump(void *vm)
+{
+    int    i;
+    CHIP8 *chip8 = (CHIP8*)vm;
+    log_printf("chip8vm_dump++\n");
+    for (i = 0; i < 16; i++) log_printf("V%-2d: %02X\n", i, chip8->v[i]);
+    log_printf("I  : %04X\n", chip8->i);
+    log_printf("\n");
+    for (i = 0; i < 4096; i++) {
+        if (i % 16 == 0) log_printf("%04Xh ", i);
+        log_printf("%02X%c", chip8->mem[i], i % 16 == 15 ? '\n' : ' ');
+    }
+    log_printf("chip8vm_dump--\n\n");
+}
+
 void chip8vm_getparam(void *vm, int id, void *param)
 {
     CHIP8   *chip8 = (CHIP8*)vm;

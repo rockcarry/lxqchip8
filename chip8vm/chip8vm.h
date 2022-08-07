@@ -22,6 +22,7 @@ void  chip8vm_run   (void *vm, int vsync);
 void  chip8vm_stop  (void *vm );
 void  chip8vm_key   (void *vm, int key);
 int   chip8vm_render(void *vm, void *buf);
+void  chip8vm_dump  (void *vm);
 
 enum {
     CHIP8VM_PARAM_SOUND_TIMER = 0,
