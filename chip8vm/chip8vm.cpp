@@ -203,9 +203,9 @@ void chip8vm_run(void *vm, int vsync)
         case 0x1: VX |= VY; break;
         case 0x2: VX &= VY; break;
         case 0x3: VX ^= VY; break;
-        case 0x4: tmp = VX + VY; VX = (uint8_t)tmp; VF = tmp > 255; break;
-        case 0x5: tmp = VX - VY; VX = (uint8_t)tmp; VF = tmp > 0  ; break;
-        case 0x7: tmp = VY - VX; VX = (uint8_t)tmp; VF = tmp > 0  ; break;
+        case 0x4: tmp = VX + VY; VX = (uint8_t)tmp; VF = tmp >  255; break;
+        case 0x5: tmp = VX - VY; VX = (uint8_t)tmp; VF = tmp >= 0  ; break;
+        case 0x7: tmp = VY - VX; VX = (uint8_t)tmp; VF = tmp >= 0  ; break;
 #if (CONFIG_CHIP8_TYPE == CHIP8_TYPE_ORIGINAL)
         case 0x6: tmp = VY; VX = tmp >> 1; VF = (tmp >> 0) & 1; break;
         case 0xE: tmp = VY; VX = tmp << 1; VF = (tmp >> 7) & 1; break;
